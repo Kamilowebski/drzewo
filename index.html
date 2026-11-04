@@ -149,14 +149,21 @@ function computeLayout() {
   persons.forEach(p => link(p.father_id, p.mother_id));
 
   // pokolenia: dziecko poniżej rodziców, partnerzy w tym samym rzędzie
+  // pokolenia: dziecko poniżej rodziców, partnerzy w tym samym rzędzie,
+  // rodzice dosunięci do rzędu tuż nad najstarszym dzieckiem
   const gen = new Map(persons.map(p => [p.id, 0]));
-  for (let i = 0; i < persons.length + 2; i++) {
+  for (let i = 0; i < persons.length * 2 + 5; i++) {
     let ch = false;
     persons.forEach(p => {
       [p.father_id, p.mother_id].forEach(pid => {
         if (gen.has(pid) && gen.get(p.id) < gen.get(pid) + 1) { gen.set(p.id, gen.get(pid) + 1); ch = true; }
       });
       partners.get(p.id).forEach(q => { if (gen.get(q) < gen.get(p.id)) { gen.set(q, gen.get(p.id)); ch = true; } });
+    });
+    children.forEach((kids, pid) => {
+      if (!gen.has(pid)) return;
+      const t = Math.min(...kids.map(c => gen.get(c.id))) - 1;
+      if (gen.get(pid) < t) { gen.set(pid, t); ch = true; }
     });
     if (!ch) break;
   }
