@@ -81,6 +81,7 @@ const SUPABASE_KEY = 'sb_publishable_Rdr7bRm5YDOEfQuuYPq7Kg_Xyy9oaU_';
 const HUB_URL = 'https://kamilowebski.github.io/hub/';
 const CARD_W = 168, CARD_H = 56, PARTNER_GAP = 12, GAP_X = 24;
 const ROW_H = 150, FAMILY_GAP = 80, PAD = 110, TOP = 40;
+const COLORS = ['#64748b', '#2563eb', '#059669', '#d97706', '#dc2626', '#0891b2', '#7c3aed', '#db2777'];
 const BTN = 'rounded-lg px-4 py-2 text-sm font-medium bg-blue-600 text-white hover:bg-blue-700';
 const BTN2 = 'rounded-lg px-4 py-2 text-sm font-medium bg-white border border-slate-300 text-slate-700 hover:bg-slate-50';
 const BTN_DEL = 'rounded-lg px-4 py-2 text-sm font-medium bg-red-600 text-white hover:bg-red-700';
@@ -118,7 +119,7 @@ function setSession(s) {
   signed = on;
   $('#loginView').classList.toggle('hidden', on);
   $('#appView').classList.toggle('hidden', !on);
-  if (on) load(); else if (!on) $('#loginView').classList.remove('hidden');
+  if (on) load();
 }
 $('#loginForm').onsubmit = async e => {
   e.preventDefault();
@@ -161,10 +162,12 @@ function computeLayout() {
   }
 
   // budowa jednostek (osoba + partnerzy) z potomkami
-  const placed = new Set();
+  const placed = new Set(), pulled = [];
   function build(p) {
     const members = [p]; placed.add(p.id);
-    partners.get(p.id).forEach(q => { if (!placed.has(q)) { placed.add(q); members.push(byId.get(q)); } });
+    partners.get(p.id).forEach(q => {
+      if (!placed.has(q)) { placed.add(q); const m = byId.get(q); members.push(m); if (hasParents(m)) pulled.push(m); }
+    });
     const kids = [...new Map(members.flatMap(m => children.get(m.id) || []).map(c => [c.id, c])).values()].sort(byBirth);
     const nodes = [];
     kids.forEach(c => { if (!placed.has(c.id)) nodes.push(build(c)); });
@@ -183,10 +186,21 @@ function computeLayout() {
   const score = p => [...partners.get(p.id)].some(q => hasParents(byId.get(q))) ? 1 : 0;
   const roots = persons.filter(p => !hasParents(p)).sort((a, b) => score(a) - score(b) || byBirth(a, b));
   let left = PAD;
-  [...roots, ...persons].forEach(p => {
+  // najwyżsi przodkowie danej osoby (do ustawienia obok jej rodziny)
+  const rootsOf = (q, seen = new Set()) => {
+    if (seen.has(q.id)) return []; seen.add(q.id);
+    const ps = [q.father_id, q.mother_id].map(i => byId.get(i)).filter(Boolean);
+    return ps.length ? ps.flatMap(x => rootsOf(x, seen)) : [q];
+  };
+  function family(p) {
     if (placed.has(p.id)) return;
-    const n = build(p); place(n, left); left += n.w + FAMILY_GAP;
-  });
+    const mark = pulled.length, n = build(p);
+    place(n, left); left += n.w + FAMILY_GAP;
+    // rodzina partnera wchodzącego do rodziny ląduje zaraz obok
+    pulled.splice(mark).forEach(q => rootsOf(q).forEach(r => family(r)));
+  }
+  roots.forEach(r => family(r));
+  persons.forEach(r => family(r));
   return { pos, gen, partners };
 }
 
@@ -209,20 +223,40 @@ function render() {
     lbl += `<div class="absolute text-xs font-medium text-slate-400" style="left:10px;top:${cy - 8}px">Pokolenie ${g + 1}</div>`;
   }
   const st = 'stroke="#94a3b8" stroke-width="2" stroke-linejoin="round"';
-  // linie rodzic → dziecko
+
+  // linie rodzic → dziecko: grupy rodzeństwa, osobne tory i kolory
+  const groups = new Map();
   persons.forEach(c => {
     const ps = [c.father_id, c.mother_id].filter(id => pos.has(id));
     if (!ps.length || !pos.has(c.id)) return;
-    const cp = pos.get(c.id), cx = cp.x + CARD_W / 2, my = cp.y - (ROW_H - CARD_H) / 2;
-    const a = ps.map(id => pos.get(id));
-    const adj = a.length === 2 && a[0].y === a[1].y && Math.abs(a[0].x - a[1].x) === CARD_W + PARTNER_GAP;
-    if (adj) {
-      const ax = Math.min(a[0].x, a[1].x) + CARD_W + PARTNER_GAP / 2, ay = a[0].y + CARD_H / 2;
-      s += `<path d="M${ax} ${ay}V${my}H${cx}V${cp.y}" ${st}/>`;
-    } else {
-      a.forEach(q => { s += `<path d="M${q.x + CARD_W / 2} ${q.y + CARD_H}V${my}H${cx}V${cp.y}" ${st}/>`; });
-    }
+    const key = ps.slice().sort().join('|') + '@' + pos.get(c.id).y;
+    if (!groups.has(key)) groups.set(key, { ps, kids: [], y: pos.get(c.id).y });
+    groups.get(key).kids.push(c);
   });
+  const gl = [...groups.values()].map(g => {
+    const a = g.ps.map(id => pos.get(id));
+    const adj = a.length === 2 && a[0].y === a[1].y && Math.abs(a[0].x - a[1].x) === CARD_W + PARTNER_GAP;
+    g.anchors = adj
+      ? [{ x: Math.min(a[0].x, a[1].x) + CARD_W + PARTNER_GAP / 2, y: a[0].y + CARD_H / 2 }]
+      : a.map(q => ({ x: q.x + CARD_W / 2, y: q.y + CARD_H }));
+    const xs = [...g.anchors.map(q => q.x), ...g.kids.map(c => pos.get(c.id).x + CARD_W / 2)];
+    g.x1 = Math.min(...xs); g.x2 = Math.max(...xs);
+    return g;
+  }).sort((a, b) => a.x1 - b.x1);
+  const laneEnd = new Map(); // y -> prawe końce zajętych torów
+  gl.forEach((g, i) => {
+    const ends = laneEnd.get(g.y) || []; laneEnd.set(g.y, ends);
+    let lane = ends.findIndex(e => e < g.x1 - 8);
+    if (lane < 0) lane = ends.length;
+    ends[lane] = g.x2;
+    const my = g.y - 14 - Math.min(lane, 7) * 10;
+    let d = '';
+    g.anchors.forEach(q => { d += `M${q.x} ${q.y}V${my}`; });
+    if (g.anchors.length === 2) d += `M${g.anchors[0].x} ${my}H${g.anchors[1].x}`;
+    g.kids.forEach(c => { d += `M${g.anchors[0].x} ${my}H${pos.get(c.id).x + CARD_W / 2}V${g.y}`; });
+    s += `<path d="${d}" stroke="${COLORS[i % COLORS.length]}" stroke-width="2" stroke-linejoin="round"/>`;
+  });
+
   // linie partnerów
   partners.forEach((set, id) => set.forEach(q => {
     if (id > q || !pos.has(id) || !pos.has(q)) return;
