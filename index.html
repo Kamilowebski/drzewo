@@ -4,6 +4,11 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Drzewo genealogiczne</title>
+<meta name="theme-color" content="#2563eb">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" type="image/svg+xml" href="icons/icon.svg">
+<link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-32.png">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
 <script src="https://cdn.tailwindcss.com/3.4.17"></script>
 <script>tailwind.config = { theme: { extend: { colors: { page: '#f4f7f9' } } } };</script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
@@ -21,9 +26,9 @@
     <p id="cfgWarn" class="hidden text-sm text-amber-600">Uzupełnij SUPABASE_URL i SUPABASE_KEY na górze skryptu.</p>
     <form id="loginForm" class="space-y-3">
       <label class="block"><span class="text-xs font-medium text-slate-600">E-mail</span>
-        <input name="email" type="email" required class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-600"></label>
+        <input name="email" type="email" required autocomplete="username" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-600"></label>
       <label class="block"><span class="text-xs font-medium text-slate-600">Hasło</span>
-        <input name="password" type="password" required class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-600"></label>
+        <input name="password" type="password" required autocomplete="current-password" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-600"></label>
       <p id="loginErr" class="text-sm text-red-600"></p>
       <button class="w-full rounded-lg px-4 py-2 text-sm font-medium bg-blue-600 text-white hover:bg-blue-700">Zaloguj</button>
     </form>
@@ -33,39 +38,53 @@
 <!-- Aplikacja -->
 <main id="appView" class="hidden max-w-7xl mx-auto px-4 py-8 space-y-6">
   <header class="flex items-center justify-between gap-3 flex-wrap">
-    <div class="flex items-center gap-3">
-      <a id="hubLink" title="Hub" class="p-2 rounded-lg border border-slate-300 bg-white hover:bg-slate-50 text-slate-600">
-        <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="4" width="4" height="4"/><rect x="10" y="4" width="4" height="4"/><rect x="16" y="4" width="4" height="4"/><rect x="4" y="10" width="4" height="4"/><rect x="10" y="10" width="4" height="4"/><rect x="16" y="10" width="4" height="4"/><rect x="4" y="16" width="4" height="4"/><rect x="10" y="16" width="4" height="4"/><rect x="16" y="16" width="4" height="4"/></svg>
-      </a>
-      <h1 class="text-2xl font-semibold">Drzewo genealogiczne</h1>
-    </div>
+    <h1 class="text-2xl font-semibold">Drzewo genealogiczne</h1>
     <div class="flex gap-2">
       <button id="btnAdd" class="rounded-lg px-4 py-2 text-sm font-medium bg-blue-600 text-white hover:bg-blue-700">+ Dodaj osobę</button>
       <button id="btnLogout" class="rounded-lg px-4 py-2 text-sm font-medium bg-white border border-slate-300 text-slate-700 hover:bg-slate-50">Wyloguj</button>
     </div>
   </header>
 
-  <div class="bg-white border border-slate-200 rounded-xl shadow-sm p-4 flex flex-wrap items-center gap-3">
-    <div class="relative flex-1 min-w-[200px]">
-      <input id="search" type="search" placeholder="Szukaj osoby…" autocomplete="off" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-600">
-      <div id="results" class="hidden absolute z-20 left-0 right-0 mt-1 bg-white border border-slate-200 rounded-lg shadow-lg overflow-hidden"></div>
+  <div class="bg-white border border-slate-200 rounded-xl shadow-sm p-4 space-y-3">
+    <div class="flex flex-wrap items-center gap-3">
+      <div class="relative flex-1 min-w-[200px]">
+        <input id="search" type="search" placeholder="Szukaj osoby…" autocomplete="off" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-600">
+        <div id="results" class="hidden absolute z-20 left-0 right-0 mt-1 bg-white border border-slate-200 rounded-lg shadow-lg overflow-hidden"></div>
+      </div>
+      <div class="inline-flex rounded-lg border border-slate-300 overflow-hidden text-sm">
+        <button id="modeFocus" class="px-3 py-2">Widok osoby</button>
+        <button id="modeFull" class="px-3 py-2 border-l border-slate-300">Całe drzewo</button>
+      </div>
     </div>
-    <span id="stats" class="text-xs text-slate-500"></span>
-    <p id="msg" class="text-sm text-red-600 w-full"></p>
+    <div id="focusOpts" class="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm text-slate-600">
+      <span id="focusName" class="font-medium text-slate-800"></span>
+      <label class="flex items-center gap-1">Pokolenia w górę
+        <select id="optUp" class="rounded-lg border border-slate-300 px-2 py-1 text-sm"><option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="4">4</option><option value="5">5</option><option value="99">wszystkie</option></select></label>
+      <label class="flex items-center gap-1">w dół
+        <select id="optDown" class="rounded-lg border border-slate-300 px-2 py-1 text-sm"><option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="99">wszystkie</option></select></label>
+      <label class="flex items-center gap-1"><input id="optSibs" type="checkbox" class="rounded border-slate-300"> Rodzeństwo</label>
+    </div>
+    <p id="msg" class="text-sm text-red-600"></p>
   </div>
 
-  <div id="viewport" class="relative overflow-hidden h-[70vh] bg-white border border-slate-200 rounded-xl shadow-sm">
-    <div id="stage"></div>
-    <div id="empty" data-ui class="hidden absolute inset-0 flex items-center justify-center p-4">
-      <div class="bg-slate-50 border border-slate-200 rounded-xl p-6 text-center text-sm text-slate-500">Brak osób w drzewie. Dodaj pierwszą osobę.</div>
+  <div class="space-y-2">
+    <div id="viewport" class="relative overflow-hidden h-[70vh] bg-white border border-slate-200 rounded-xl shadow-sm">
+      <div id="stage"></div>
+      <div id="empty" data-ui class="hidden absolute inset-0 flex items-center justify-center p-4">
+        <div class="bg-slate-50 border border-slate-200 rounded-xl p-6 text-center space-y-3 max-w-xs">
+          <p id="emptyText" class="text-sm text-slate-500">Drzewo jest puste. Zacznij od siebie albo od najstarszej znanej osoby.</p>
+          <button id="btnAddFirst" class="rounded-lg px-4 py-2 text-sm font-medium bg-blue-600 text-white hover:bg-blue-700">+ Dodaj pierwszą osobę</button>
+        </div>
+      </div>
+      <div data-ui class="absolute right-3 top-3 flex flex-col gap-2">
+        <button id="zIn" title="Przybliż" class="w-9 h-9 rounded-lg bg-white border border-slate-300 hover:bg-slate-50 text-lg leading-none">+</button>
+        <button id="zOut" title="Oddal" class="w-9 h-9 rounded-lg bg-white border border-slate-300 hover:bg-slate-50 text-lg leading-none">−</button>
+        <button id="zFit" title="Dopasuj do ekranu" class="w-9 h-9 rounded-lg bg-white border border-slate-300 hover:bg-slate-50 flex items-center justify-center text-slate-600">
+          <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg>
+        </button>
+      </div>
     </div>
-    <div data-ui class="absolute right-3 top-3 flex flex-col gap-2">
-      <button id="zIn" title="Przybliż" class="w-9 h-9 rounded-lg bg-white border border-slate-300 hover:bg-slate-50 text-lg leading-none">+</button>
-      <button id="zOut" title="Oddal" class="w-9 h-9 rounded-lg bg-white border border-slate-300 hover:bg-slate-50 text-lg leading-none">−</button>
-      <button id="zFit" title="Dopasuj" class="w-9 h-9 rounded-lg bg-white border border-slate-300 hover:bg-slate-50 flex items-center justify-center text-slate-600">
-        <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg>
-      </button>
-    </div>
+    <p class="text-xs text-slate-500">Przeciągnij, aby przesunąć. Kółko myszy lub dwa palce przybliżają. Kliknij osobę, aby zobaczyć szczegóły i dodać krewnych.</p>
   </div>
 </main>
 
@@ -78,7 +97,7 @@
 // ===== Konfiguracja =====
 const SUPABASE_URL = 'https://mzvyytyqqnrfeskniyom.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_Rdr7bRm5YDOEfQuuYPq7Kg_Xyy9oaU_';
-const HUB_URL = 'https://kamilowebski.github.io/hub/';
+const LS_KEY = 'drzewo_ustawienia';
 const CARD_W = 168, CARD_H = 56, PARTNER_GAP = 12, GAP_X = 24;
 const ROW_H = 150, FAMILY_GAP = 80, PAD = 110, TOP = 40;
 const COLORS = ['#64748b', '#2563eb', '#059669', '#d97706', '#dc2626', '#0891b2', '#7c3aed', '#db2777'];
@@ -93,21 +112,35 @@ const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': 
 let db, signed = false, persons = [], unions = [], byId = new Map(), children = new Map();
 let last = null, dims = { W: 0, H: 0 }, view = { x: 0, y: 0, k: 1 }, firstFit = true;
 
+// Ustawienia widoku (zapamiętywane w przeglądarce)
+let mode = 'focus', focusId = null, depthUp = 3, depthDown = 2, showSibs = true;
+try {
+  const cfg = JSON.parse(localStorage.getItem(LS_KEY) || '{}');
+  if (cfg.mode) mode = cfg.mode;
+  focusId = cfg.focusId || null;
+  depthUp = cfg.depthUp ?? 3; depthDown = cfg.depthDown ?? 2; showSibs = cfg.showSibs ?? true;
+} catch (e) {}
+const saveCfg = () => { try { localStorage.setItem(LS_KEY, JSON.stringify({ mode, focusId, depthUp, depthDown, showSibs })); } catch (e) {} };
+
 // ===== Pomocnicze =====
 const yr = s => (String(s || '').match(/\d{4}/) || [''])[0];
 const name = p => [p.first_name, p.last_name].filter(Boolean).join(' ') || 'Nieznana osoba';
 const years = p => { const b = yr(p.birth_date), d = yr(p.death_date); return b || d ? (b || '?') + (d ? ' – ' + d : '') : ''; };
 const byName = (a, b) => name(a).localeCompare(name(b), 'pl');
 const byBirth = (a, b) => (yr(a.birth_date) || '9999').localeCompare(yr(b.birth_date) || '9999') || byName(a, b);
-const hasParents = p => [p.father_id, p.mother_id].some(i => byId.has(i));
-function setMsg(t) { $('#msg').textContent = t || ''; if (t) setTimeout(() => { $('#msg').textContent = ''; }, 6000); }
+function setMsg(t) { $('#msg').textContent = t || ''; if (t) setTimeout(() => { $('#msg').textContent = ''; }, 7000); }
 function descendants(id, set = new Set()) {
   (children.get(id) || []).forEach(c => { if (!set.has(c.id)) { set.add(c.id); descendants(c.id, set); } });
   return set;
 }
+function partnersOf(id) {
+  const s = new Set();
+  unions.forEach(u => { if (u.person_a === id) s.add(u.person_b); if (u.person_b === id) s.add(u.person_a); });
+  (children.get(id) || []).forEach(c => [c.father_id, c.mother_id].forEach(i => { if (i && i !== id) s.add(i); }));
+  return s;
+}
 
 // ===== Logowanie / dane =====
-$('#hubLink').href = HUB_URL;
 if (SUPABASE_URL.includes('TWOJ')) {
   $('#loginView').classList.remove('hidden'); $('#cfgWarn').classList.remove('hidden');
 } else {
@@ -119,19 +152,19 @@ function setSession(s) {
   signed = on;
   $('#loginView').classList.toggle('hidden', on);
   $('#appView').classList.toggle('hidden', !on);
-  if (on) load();
+  if (on) load(); else { persons = []; firstFit = true; }
 }
 $('#loginForm').onsubmit = async e => {
   e.preventDefault();
   const f = new FormData(e.target);
   const { error } = await db.auth.signInWithPassword({ email: f.get('email'), password: f.get('password') });
-  $('#loginErr').textContent = error ? 'Nieprawidłowy e-mail lub hasło.' : '';
+  $('#loginErr').textContent = error ? 'Nieprawidłowy e-mail lub hasło. Sprawdź dane i spróbuj ponownie.' : '';
 };
 $('#btnLogout').onclick = () => db.auth.signOut();
 
 async function load() {
   const [p, u] = await Promise.all([db.from('persons').select('*'), db.from('unions').select('*')]);
-  if (p.error || u.error) return setMsg('Błąd pobierania danych: ' + (p.error || u.error).message);
+  if (p.error || u.error) return setMsg('Nie udało się pobrać danych (' + (p.error || u.error).message + '). Odśwież stronę lub uruchom schema.sql w Supabase.');
   persons = p.data; unions = u.data;
   byId = new Map(persons.map(x => [x.id, x]));
   children = new Map();
@@ -140,30 +173,70 @@ async function load() {
   if (firstFit) { fit(); firstFit = false; }
 }
 
+// ===== Widok skupiony na osobie =====
+function visibleIds() {
+  if (mode !== 'focus' || !byId.has(focusId)) return null;
+  const ids = new Set([focusId]), dl = [];
+  const up = (id, d) => {
+    const p = byId.get(id); if (!p || d >= depthUp) return;
+    [p.father_id, p.mother_id].forEach(i => { if (byId.has(i) && !ids.has(i)) { ids.add(i); up(i, d + 1); } });
+  };
+  up(focusId, 0);
+  if (showSibs) {
+    const p = byId.get(focusId);
+    persons.forEach(c => { if (c.id !== focusId && ((p.father_id && c.father_id === p.father_id) || (p.mother_id && c.mother_id === p.mother_id))) ids.add(c.id); });
+  }
+  const down = (id, d) => { if (d >= depthDown) return; (children.get(id) || []).forEach(c => { if (!ids.has(c.id)) { ids.add(c.id); dl.push(c.id); down(c.id, d + 1); } }); };
+  down(focusId, 0);
+  [focusId, ...dl].forEach(i => partnersOf(i).forEach(q => { if (byId.has(q)) ids.add(q); }));
+  return ids;
+}
+function syncControls() {
+  const f = mode === 'focus', on = 'bg-blue-600 text-white', off = 'bg-white text-slate-700 hover:bg-slate-50';
+  $('#modeFocus').className = 'px-3 py-2 ' + (f ? on : off);
+  $('#modeFull').className = 'px-3 py-2 border-l border-slate-300 ' + (f ? off : on);
+  $('#focusOpts').classList.toggle('hidden', !f);
+  const p = byId.get(focusId);
+  $('#focusName').textContent = p ? 'W centrum: ' + name(p) : 'Wyszukaj osobę, aby ustawić ją w centrum';
+  $('#optUp').value = depthUp; $('#optDown').value = depthDown; $('#optSibs').checked = showSibs;
+  $('#search').placeholder = f ? 'Szukaj osoby i pokaż ją w centrum…' : 'Szukaj osoby…';
+}
+const redraw = () => { saveCfg(); render(); fit(); };
+$('#modeFocus').onclick = () => { mode = 'focus'; redraw(); };
+$('#modeFull').onclick = () => { mode = 'full'; redraw(); };
+$('#optUp').onchange = e => { depthUp = +e.target.value; redraw(); };
+$('#optDown').onchange = e => { depthDown = +e.target.value; redraw(); };
+$('#optSibs').onchange = e => { showSibs = e.target.checked; redraw(); };
+
 // ===== Układ drzewa =====
-function computeLayout() {
+function computeLayout(ids) {
+  const inSet = i => !!i && byId.has(i) && (!ids || ids.has(i));
+  const P = persons.filter(p => !ids || ids.has(p.id));
+  const kidsOf = id => (children.get(id) || []).filter(c => inSet(c.id));
+  const hasPar = p => [p.father_id, p.mother_id].some(inSet);
+
   // partnerzy: jawne związki + wspólne dzieci
-  const partners = new Map(persons.map(p => [p.id, new Set()]));
+  const partners = new Map(P.map(p => [p.id, new Set()]));
   const link = (a, b) => { if (a && b && a !== b && partners.has(a) && partners.has(b)) { partners.get(a).add(b); partners.get(b).add(a); } };
   unions.forEach(u => link(u.person_a, u.person_b));
-  persons.forEach(p => link(p.father_id, p.mother_id));
+  P.forEach(p => link(p.father_id, p.mother_id));
 
-  // pokolenia: dziecko poniżej rodziców, partnerzy w tym samym rzędzie
-  // pokolenia: dziecko poniżej rodziców, partnerzy w tym samym rzędzie,
-  // rodzice dosunięci do rzędu tuż nad najstarszym dzieckiem
-  const gen = new Map(persons.map(p => [p.id, 0]));
-  for (let i = 0; i < persons.length * 2 + 5; i++) {
+  // pokolenia: dziecko pod rodzicami, rodzeństwo i partnerzy w jednym rzędzie,
+  // rodzice dosunięci do rzędu tuż nad dziećmi
+  const gen = new Map(P.map(p => [p.id, 0]));
+  for (let i = 0; i < P.length * 3 + 10; i++) {
     let ch = false;
-    persons.forEach(p => {
+    P.forEach(p => {
       [p.father_id, p.mother_id].forEach(pid => {
         if (gen.has(pid) && gen.get(p.id) < gen.get(pid) + 1) { gen.set(p.id, gen.get(pid) + 1); ch = true; }
       });
       partners.get(p.id).forEach(q => { if (gen.get(q) < gen.get(p.id)) { gen.set(q, gen.get(p.id)); ch = true; } });
-    });
-    children.forEach((kids, pid) => {
-      if (!gen.has(pid)) return;
-      const t = Math.min(...kids.map(c => gen.get(c.id))) - 1;
-      if (gen.get(pid) < t) { gen.set(pid, t); ch = true; }
+      const kids = kidsOf(p.id);
+      if (kids.length) {
+        const g = Math.max(...kids.map(c => gen.get(c.id)));
+        kids.forEach(c => { if (gen.get(c.id) < g) { gen.set(c.id, g); ch = true; } });
+        if (gen.get(p.id) < g - 1) { gen.set(p.id, g - 1); ch = true; }
+      }
     });
     if (!ch) break;
   }
@@ -173,9 +246,9 @@ function computeLayout() {
   function build(p) {
     const members = [p]; placed.add(p.id);
     partners.get(p.id).forEach(q => {
-      if (!placed.has(q)) { placed.add(q); const m = byId.get(q); members.push(m); if (hasParents(m)) pulled.push(m); }
+      if (!placed.has(q)) { placed.add(q); const m = byId.get(q); members.push(m); if (hasPar(m)) pulled.push(m); }
     });
-    const kids = [...new Map(members.flatMap(m => children.get(m.id) || []).map(c => [c.id, c])).values()].sort(byBirth);
+    const kids = [...new Map(members.flatMap(m => kidsOf(m.id)).map(c => [c.id, c])).values()].sort(byBirth);
     const nodes = [];
     kids.forEach(c => { if (!placed.has(c.id)) nodes.push(build(c)); });
     const own = members.length * CARD_W + (members.length - 1) * PARTNER_GAP;
@@ -190,44 +263,55 @@ function computeLayout() {
     n.nodes.forEach(c => { place(c, cx); cx += c.w + GAP_X; });
   }
   // korzenie: osoby bez rodziców; te, których partner ma rodziców, na końcu
-  const score = p => [...partners.get(p.id)].some(q => hasParents(byId.get(q))) ? 1 : 0;
-  const roots = persons.filter(p => !hasParents(p)).sort((a, b) => score(a) - score(b) || byBirth(a, b));
+  const score = p => [...partners.get(p.id)].some(q => hasPar(byId.get(q))) ? 1 : 0;
+  const roots = P.filter(p => !hasPar(p)).sort((a, b) => score(a) - score(b) || byBirth(a, b));
   let left = PAD;
   // najwyżsi przodkowie danej osoby (do ustawienia obok jej rodziny)
   const rootsOf = (q, seen = new Set()) => {
     if (seen.has(q.id)) return []; seen.add(q.id);
-    const ps = [q.father_id, q.mother_id].map(i => byId.get(i)).filter(Boolean);
+    const ps = [q.father_id, q.mother_id].filter(inSet).map(i => byId.get(i));
     return ps.length ? ps.flatMap(x => rootsOf(x, seen)) : [q];
   };
   function family(p) {
     if (placed.has(p.id)) return;
     const mark = pulled.length, n = build(p);
     place(n, left); left += n.w + FAMILY_GAP;
-    // rodzina partnera wchodzącego do rodziny ląduje zaraz obok
     pulled.splice(mark).forEach(q => rootsOf(q).forEach(r => family(r)));
   }
   roots.forEach(r => family(r));
-  persons.forEach(r => family(r));
+  P.forEach(r => family(r));
   return { pos, gen, partners };
 }
 
 // ===== Rysowanie =====
 function render() {
-  const L = computeLayout(); last = L;
+  if (!byId.has(focusId)) focusId = persons.length ? persons[0].id : null;
+  const L = computeLayout(visibleIds()); last = L;
   const { pos, gen, partners } = L;
+  syncControls();
   $('#empty').classList.toggle('hidden', persons.length > 0);
-  $('#stats').textContent = persons.length + ' os. · ' + (new Set(gen.values()).size) + ' pokoleń';
   const maxX = Math.max(0, ...[...pos.values()].map(p => p.x)) + CARD_W + PAD;
   const maxGen = Math.max(0, ...gen.values());
   const W = maxX, H = TOP * 2 + maxGen * ROW_H + CARD_H;
   dims = { W, H };
+
+  // podpisy pokoleń: w widoku osoby względem wybranej osoby
+  const fg = mode === 'focus' && gen.has(focusId) ? gen.get(focusId) : null;
+  const UP = ['Rodzice', 'Dziadkowie', 'Pradziadkowie', 'Prapradziadkowie'], DOWN = ['Dzieci', 'Wnuki', 'Prawnuki', 'Praprawnuki'];
+  const genLabel = g => {
+    if (fg === null) return 'Pokolenie ' + (g + 1);
+    const r = g - fg;
+    if (r === 0) return showSibs ? 'Osoba w centrum i rodzeństwo' : 'Osoba w centrum';
+    if (r < 0) return UP[-r - 1] || (-r) + ' pokoleń wyżej';
+    return DOWN[r - 1] || r + ' pokoleń niżej';
+  };
 
   let s = `<svg width="${W}" height="${H}" class="absolute left-0 top-0 pointer-events-none" fill="none">`;
   let lbl = '';
   for (let g = 0; g <= maxGen; g++) {
     const cy = TOP + g * ROW_H + CARD_H / 2;
     s += `<line x1="0" x2="${W}" y1="${cy}" y2="${cy}" stroke="#eef2f6"/>`;
-    lbl += `<div class="absolute text-xs font-medium text-slate-400" style="left:10px;top:${cy - 8}px">Pokolenie ${g + 1}</div>`;
+    lbl += `<div class="absolute text-xs font-medium text-slate-400" style="left:10px;top:${cy - 8}px">${esc(genLabel(g))}</div>`;
   }
   const st = 'stroke="#94a3b8" stroke-width="2" stroke-linejoin="round"';
 
@@ -283,7 +367,8 @@ function render() {
     const q = pos.get(p.id); if (!q) return;
     const bc = p.gender === 'M' ? 'border-l-sky-400' : p.gender === 'K' ? 'border-l-pink-400' : 'border-l-slate-300';
     const full = name(p) + (p.maiden_name ? ` (${p.maiden_name})` : '');
-    cards += `<button data-id="${esc(p.id)}" title="${esc(full)}" class="card absolute text-left bg-white border border-slate-200 border-l-4 ${bc} rounded-xl shadow-sm hover:shadow-md px-3 py-2 overflow-hidden" style="left:${q.x}px;top:${q.y}px;width:${CARD_W}px;height:${CARD_H}px">
+    const isF = mode === 'focus' && p.id === focusId, dead = !!p.death_date;
+    cards += `<button data-id="${esc(p.id)}" title="${esc(full)}" class="card absolute text-left border border-slate-200 border-l-4 ${bc} ${dead ? 'bg-slate-50 text-slate-600' : 'bg-white'} ${isF ? 'ring-2 ring-blue-600' : ''} rounded-xl shadow-sm hover:shadow-md px-3 py-2 overflow-hidden" style="left:${q.x}px;top:${q.y}px;width:${CARD_W}px;height:${CARD_H}px">
       <div class="text-sm font-semibold truncate">${esc(full)}</div><div class="text-xs text-slate-500 truncate">${esc(years(p)) || '&nbsp;'}</div></button>`;
   });
   const stage = $('#stage');
@@ -332,7 +417,9 @@ $('#zFit').onclick = fit;
 window.addEventListener('resize', () => { if (persons.length) applyView(); });
 
 // ===== Wyszukiwarka =====
+// W widoku osoby ustawia znalezioną osobę w centrum, w całym drzewie przewija do niej i pokazuje szczegóły.
 function focusPerson(id) {
+  if (mode === 'focus') { focusId = id; saveCfg(); closeModal(); render(); fit(); return; }
   const q = last.pos.get(id); if (!q) return;
   view.k = 1; view.x = vp.clientWidth / 2 - (q.x + CARD_W / 2); view.y = vp.clientHeight / 2 - (q.y + CARD_H / 2);
   applyView(); openDetail(id);
@@ -354,6 +441,7 @@ function closeModal() { $('#modal').classList.add('hidden'); }
 $('#modal').addEventListener('mousedown', e => { if (e.target.id === 'modal') closeModal(); });
 document.addEventListener('keydown', e => { if (e.key === 'Escape') closeModal(); });
 $('#btnAdd').onclick = () => openForm();
+$('#btnAddFirst').onclick = () => openForm();
 
 // ===== Szczegóły osoby =====
 function openDetail(id) {
@@ -361,31 +449,38 @@ function openDetail(id) {
   const chip = q => `<button data-go="${esc(q.id)}" class="text-blue-600 hover:underline text-sm">${esc(name(q))}</button>`;
   const row = (l, v) => v ? `<div class="flex justify-between gap-4 text-sm py-1.5 border-b border-slate-100"><span class="text-slate-500">${l}</span><span class="text-right">${v}</span></div>` : '';
   const par = [p.father_id, p.mother_id].map(i => byId.get(i)).filter(Boolean);
-  const pts = [...(last.partners.get(id) || [])].map(i => byId.get(i)).filter(Boolean);
+  const pts = [...partnersOf(id)].map(i => byId.get(i)).filter(Boolean);
   const kids = (children.get(id) || []).slice().sort(byBirth);
+  const sibs = persons.filter(q => q.id !== id && ((p.father_id && q.father_id === p.father_id) || (p.mother_id && q.mother_id === p.mother_id))).sort(byBirth);
+  const fullSib = q => p.father_id && p.mother_id && q.father_id === p.father_id && q.mother_id === p.mother_id;
+  const sibChip = q => chip(q) + (fullSib(q) ? '' : ' <span class="text-xs text-slate-400">(przyrodnie)</span>');
   const un = q => unions.find(u => (u.person_a === id && u.person_b === q.id) || (u.person_b === id && u.person_a === q.id));
-  const ptsHtml = pts.map(q => chip(q) + (un(q) ? ` <button data-unlink="${esc(un(q).id)}" class="text-xs text-red-600 hover:underline">usuń</button>` : '')).join(', ');
+  const ptsHtml = pts.map(q => chip(q) + (un(q) ? ` <button data-unlink="${esc(un(q).id)}" class="text-xs text-red-600 hover:underline">usuń powiązanie</button>` : '')).join(', ');
   const others = persons.filter(q => q.id !== id && !pts.includes(q)).sort(byName);
+  const isCenter = mode === 'focus' && id === focusId;
   showModal(`
     <div class="flex items-start justify-between gap-3 mb-3">
       <div><h2 class="text-xl font-semibold">${esc(name(p))}</h2>${p.maiden_name ? `<p class="text-sm text-slate-500">z domu ${esc(p.maiden_name)}</p>` : ''}</div>
-      <button data-close class="text-slate-400 hover:text-slate-600 text-xl leading-none">×</button>
+      <button data-close class="text-slate-400 hover:text-slate-600 text-xl leading-none" title="Zamknij">×</button>
     </div>
     <div class="mb-4">
       ${row('Płeć', p.gender === 'M' ? 'mężczyzna' : p.gender === 'K' ? 'kobieta' : '')}
       ${row('Data urodzenia', esc(p.birth_date))}${row('Miejsce urodzenia', esc(p.birth_place))}
       ${row('Data śmierci', esc(p.death_date))}${row('Miejsce śmierci', esc(p.death_place))}
-      ${row('Rodzice', par.map(chip).join(', '))}${row('Partnerzy', ptsHtml)}${row('Dzieci', kids.map(chip).join(', '))}
+      ${row('Rodzice', par.map(chip).join(', '))}${row('Rodzeństwo', sibs.map(sibChip).join(', '))}${row('Partnerzy', ptsHtml)}${row('Dzieci', kids.map(chip).join(', '))}
     </div>
     ${p.notes ? `<p class="text-sm whitespace-pre-wrap bg-slate-50 border border-slate-200 rounded-lg p-3 mb-4">${esc(p.notes)}</p>` : ''}
+    ${isCenter ? '' : `<button data-act="focus" class="${BTN} w-full mb-4">Pokaż w centrum</button>`}
+    <p class="text-xs font-medium text-slate-500 mb-2">Dodaj krewnego</p>
     <div class="flex flex-wrap gap-2 mb-4">
       <button data-act="child" class="${BTN2}">+ Dziecko</button>
       <button data-act="partner" class="${BTN2}">+ Partner</button>
       ${par.length < 2 ? `<button data-act="parent" class="${BTN2}">+ Rodzic</button>` : ''}
+      ${par.length ? `<button data-act="sibling" class="${BTN2}">+ Rodzeństwo</button>` : ''}
     </div>
     ${others.length ? `<div class="flex gap-2 mb-4"><select id="linkSel" class="${INP}"><option value="">Powiąż z istniejącym partnerem…</option>${others.map(q => `<option value="${esc(q.id)}">${esc(name(q))} ${esc(years(q))}</option>`).join('')}</select><button data-act="link" class="${BTN2}">Powiąż</button></div>` : ''}
     <div class="flex justify-between gap-2 pt-4 border-t border-slate-200">
-      <button data-act="del" class="${BTN_DEL}">Usuń</button>
+      <button data-act="del" class="${BTN_DEL}">Usuń osobę</button>
       <div class="flex gap-2"><button data-close class="${BTN2}">Zamknij</button><button data-act="edit" class="${BTN}">Edytuj</button></div>
     </div>`);
   $('#modalBody').onclick = async e => {
@@ -395,8 +490,10 @@ function openDetail(id) {
     if (t.dataset.unlink) { await db.from('unions').delete().eq('id', t.dataset.unlink); await load(); return openDetail(id); }
     const a = t.dataset.act; if (!a) return;
     if (a === 'edit') openForm({ p });
+    if (a === 'focus') { mode = 'focus'; focusId = id; saveCfg(); closeModal(); render(); fit(); }
     if (a === 'partner') openForm({ pre: {}, partnerOf: id });
     if (a === 'parent') openForm({ pre: { gender: p.father_id ? 'K' : 'M' }, parentOf: id });
+    if (a === 'sibling') openForm({ pre: { father_id: p.father_id, mother_id: p.mother_id, last_name: byId.get(p.father_id)?.last_name } });
     if (a === 'child') {
       const other = pts.length === 1 ? pts[0].id : null, pre = {};
       if (p.gender === 'K') { pre.mother_id = id; pre.father_id = other; } else { pre.father_id = id; pre.mother_id = other; }
@@ -404,7 +501,7 @@ function openDetail(id) {
       openForm({ pre });
     }
     if (a === 'link') {
-      const q = $('#linkSel').value; if (!q) return;
+      const q = $('#linkSel').value; if (!q) return setMsg('Wybierz osobę z listy, z którą chcesz powiązać.');
       const r = await db.from('unions').insert({ person_a: id, person_b: q });
       if (r.error) return setMsg(r.error.message);
       await load(); openDetail(id);
@@ -426,7 +523,8 @@ function openForm(o = {}) {
   const opt = (arr, sel) => '<option value="">— brak —</option>' + arr.map(q => `<option value="${esc(q.id)}"${q.id === sel ? ' selected' : ''}>${esc(name(q))} ${esc(years(q))}</option>`).join('');
   const inp = (l, n, ph = '') => `<label class="block"><span class="text-xs font-medium text-slate-600">${l}</span><input name="${n}" value="${esc(p[n])}" placeholder="${ph}" class="${INP}"></label>`;
   showModal(`
-    <h2 class="text-lg font-semibold mb-4">${o.p ? 'Edytuj osobę' : 'Nowa osoba'}</h2>
+    <h2 class="text-lg font-semibold mb-1">${o.p ? 'Edytuj osobę' : 'Nowa osoba'}</h2>
+    <p class="text-xs text-slate-500 mb-4">Wszystkie pola są opcjonalne. Wypełnij tyle, ile wiesz.</p>
     <form id="personForm" class="space-y-3">
       <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
         ${inp('Imię', 'first_name')}${inp('Nazwisko', 'last_name')}${inp('Nazwisko rodowe', 'maiden_name')}
@@ -446,7 +544,7 @@ function openForm(o = {}) {
     const d = {}; new FormData(e.target).forEach((v, k) => { d[k] = String(v).trim() || null; });
     const r = o.p ? await db.from('persons').update(d).eq('id', o.p.id).select().single()
                   : await db.from('persons').insert(d).select().single();
-    if (r.error) return setMsg('Błąd zapisu: ' + r.error.message);
+    if (r.error) return setMsg('Nie udało się zapisać: ' + r.error.message);
     if (o.partnerOf) await db.from('unions').insert({ person_a: o.partnerOf, person_b: r.data.id });
     if (o.parentOf) {
       const ch = byId.get(o.parentOf);
@@ -454,6 +552,11 @@ function openForm(o = {}) {
       await db.from('persons').update({ [col]: r.data.id }).eq('id', o.parentOf);
     }
     closeModal(); await load();
+    // nowa osoba niepowiązana z widocznym fragmentem trafia do centrum, żeby było ją widać
+    if (!o.p && mode === 'focus') {
+      const v = visibleIds();
+      if (v && !v.has(r.data.id)) { focusId = r.data.id; saveCfg(); render(); fit(); }
+    }
   };
 }
 </script>
